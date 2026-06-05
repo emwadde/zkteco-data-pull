@@ -22,16 +22,7 @@ def load_devices():
 
 @app.get("/devices")
 def get_devices():
-    devices_dict = load_devices()
-    
-    # Convert the dictionary into a JSON array (list of dictionaries)
-    devices_array = []
-    for device_id, device_info in devices_dict.items():
-        device_data = {"id": device_id}
-        device_data.update(device_info)
-        devices_array.append(device_data)
-        
-    return devices_array
+    return load_devices()
 
 @app.get("/devices/{device_id}/users")
 def get_device_users(device_id: str):
