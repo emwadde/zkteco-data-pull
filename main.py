@@ -35,7 +35,6 @@ async def auth_middleware(request: Request, call_next):
     if expected_token:
         provided_token = request.headers.get("x-auth-token") or request.cookies.get("x-auth-token")
         if provided_token != expected_token:
-            # Redirect UI routes to login, return JSON for API routes
             if request.url.path.startswith("/ui/"):
                 return RedirectResponse(url="/ui/login", status_code=302)
             return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
@@ -86,7 +85,7 @@ def devices_page():
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{d.get('ip')}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{d.get('port', 4370)}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <a href="/docs#/default/get_device_users_devices__device_id__users_get" class="text-blue-600 hover:text-blue-900 mr-3">API: Users</a>
+                <a href="/ui/devices/{d.get('id')}/users" class="text-blue-600 hover:text-blue-900 mr-3">Users</a>
                 <a href="/docs#/default/get_device_attendance_devices__device_id__attendance_get" class="text-blue-600 hover:text-blue-900">API: Logs</a>
             </td>
         </tr>
@@ -114,6 +113,69 @@ def devices_page():
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IP Address</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Port</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {rows}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+@app.get("/ui/devices/{device_id}/users", response_class=HTMLResponse)
+def device_users_page(device_id: str):
+    devices = load_devices()
+    device_info = next((d for d in devices if d.get("id") == device_id), None)
+    
+    if not device_info:
+        return HTMLResponse("<div style='padding:2rem'>Device not found</div>", status_code=404)
+
+    zk = ZKTecoAttendance(ip_address=device_info["ip"], port=device_info.get("port", 4370))
+    try:
+        zk.connect()
+        users = zk.get_users()
+    except Exception as e:
+        return HTMLResponse(f"<div style='padding:2rem'>Error connecting to device: {str(e)}</div>", status_code=500)
+    finally:
+        zk.disconnect()
+
+    rows = ""
+    for u in users:
+        rows += f"""
+        <tr class="border-b border-gray-200 hover:bg-gray-50">
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{u.get('uid')}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{u.get('user_id')}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{u.get('name') or 'N/A'}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{u.get('privilege')}</td>
+        </tr>
+        """
+
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Users - {device_info.get('name')}</title>
+        <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    </head>
+    <body class="bg-gray-50 p-8">
+        <div class="max-w-5xl mx-auto">
+            <div class="mb-4">
+                <a href="/ui/devices" class="text-blue-600 hover:underline">&larr; Back to Devices</a>
+            </div>
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-3xl font-bold text-gray-800">Users on {device_info.get('name')}</h1>
+            </div>
+            <div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UID</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User ID</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Privilege</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
