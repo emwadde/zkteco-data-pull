@@ -200,11 +200,7 @@ def device_users_page(device_id: str):
                     </tbody>
                 </table>
             </div>
-                } finally {{
-                    document.getElementById('loading').classList.add('hidden');
-                }}
-            }});
-        </script>
+                <script>document.getElementById('loading').classList.add('hidden');</script>
     </body>
     </html>
     """
