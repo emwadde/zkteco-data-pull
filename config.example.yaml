@@ -1,5 +1,5 @@
 client: Client Name
-x_auth_header: example_auth_token
+x_auth_token: example_auth_token
 devices:
   - id: machine_1
     name: Machine 1
