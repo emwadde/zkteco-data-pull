@@ -41,7 +41,7 @@ async def auth_middleware(request: Request, call_next):
             
     return await call_next(request)
 
-@app.get("/ui/login", response_class=HTMLResponse)
+@app.get("/ui/login", response_class=HTMLResponse, include_in_schema=False)
 def login_page():
     return """
     <!DOCTYPE html>
@@ -63,7 +63,7 @@ def login_page():
     </html>
     """
 
-@app.post("/ui/login")
+@app.post("/ui/login", include_in_schema=False)
 def login_submit(response: Response, token: str = Form(...)):
     config = load_config()
     expected_token = config.get("x_auth_token")
@@ -75,7 +75,7 @@ def login_submit(response: Response, token: str = Form(...)):
         
     return HTMLResponse("Invalid token. <a href='/ui/login' class='text-blue-500 underline'>Try again</a>", status_code=401)
 
-@app.get("/ui/devices", response_class=HTMLResponse)
+@app.get("/ui/devices", response_class=HTMLResponse, include_in_schema=False)
 def devices_page():
     devices = load_devices()
     rows = ""
@@ -129,7 +129,7 @@ def devices_page():
     </html>
     """
 
-@app.get("/ui/devices/{device_id}/users", response_class=HTMLResponse)
+@app.get("/ui/devices/{device_id}/users", response_class=HTMLResponse, include_in_schema=False)
 def device_users_page(device_id: str):
     devices = load_devices()
     device_info = next((d for d in devices if d.get("id") == device_id), None)
@@ -192,7 +192,7 @@ def device_users_page(device_id: str):
     </html>
     """
 
-@app.get("/ui/devices/{device_id}/logs", response_class=HTMLResponse)
+@app.get("/ui/devices/{device_id}/logs", response_class=HTMLResponse, include_in_schema=False)
 def device_logs_page(device_id: str):
     devices = load_devices()
     device_info = next((d for d in devices if d.get("id") == device_id), None)
