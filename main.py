@@ -1,13 +1,17 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request, Depends
+from fastapi.responses import JSONResponse
+from fastapi.security import APIKeyHeader
 import yaml
 import os
 from typing import Optional
 from datetime import date
-from fastapi import Request
-from fastapi.responses import JSONResponse
 from zkteco_utils import ZKTecoAttendance
 
-app = FastAPI()
+# Define the security scheme for Swagger UI
+api_key_header = APIKeyHeader(name="x-auth-header", auto_error=False)
+
+# Add it as a global dependency so Swagger UI knows about it
+app = FastAPI(dependencies=[Depends(api_key_header)])
 
 CONFIG_FILE = "config.yaml"
 
@@ -34,7 +38,7 @@ async def auth_middleware(request: Request, call_next):
     config = load_config()
     expected_token = config.get("x_auth_header")
     
-    # Check if the header matches (FastAPI lowercases header keys)
+    # Check if the header matches
     if expected_token and request.headers.get("x-auth-header") != expected_token:
         return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
         
@@ -78,11 +82,8 @@ def get_device_attendance(
     
     try:
         zk.connect()
-        # The utility class handles datetime/date conversions automatically
         return zk.get_attendance(start_date=start_date, end_date=end_date)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         zk.disconnect()
-
-# Run using: uvicorn main:app --reload
