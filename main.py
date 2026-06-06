@@ -3,22 +3,42 @@ import yaml
 import os
 from typing import Optional
 from datetime import date
+from fastapi import Request
+from fastapi.responses import JSONResponse
 from zkteco_utils import ZKTecoAttendance
 
 app = FastAPI()
 
-CONFIG_FILE = "devices.yaml"
+CONFIG_FILE = "config.yaml"
 
-def load_devices():
+def load_config():
     if not os.path.exists(CONFIG_FILE):
         raise HTTPException(status_code=404, detail="Configuration file not found")
     
     with open(CONFIG_FILE, "r") as file:
         try:
-            data = yaml.safe_load(file)
-            return data.get("devices", [])
+            return yaml.safe_load(file)
         except yaml.YAMLError:
             raise HTTPException(status_code=500, detail="Error parsing YAML file")
+
+def load_devices():
+    config = load_config()
+    return config.get("devices", [])
+
+@app.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    # Bypass auth for OpenAPI docs
+    if request.url.path in ["/docs", "/openapi.json", "/redoc"]:
+        return await call_next(request)
+        
+    config = load_config()
+    expected_token = config.get("x_auth_header")
+    
+    # Check if the header matches (FastAPI lowercases header keys)
+    if expected_token and request.headers.get("x-auth-header") != expected_token:
+        return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
+        
+    return await call_next(request)
 
 @app.get("/devices")
 def get_devices():
