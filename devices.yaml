@@ -5,6 +5,6 @@ devices:
     ip: 192.168.50.49
     port: 4370
   - id: machine_2
-    name: Machine 2
-    ip: 192.168.50.50
+    name: Machine 404
+    ip: 192.168.40.4
     port: 4370
