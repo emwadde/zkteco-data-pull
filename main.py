@@ -16,7 +16,7 @@ def load_devices():
     with open(CONFIG_FILE, "r") as file:
         try:
             data = yaml.safe_load(file)
-            return data.get("devices", {})
+            return data.get("devices", [])
         except yaml.YAMLError:
             raise HTTPException(status_code=500, detail="Error parsing YAML file")
 
@@ -27,11 +27,11 @@ def get_devices():
 @app.get("/devices/{device_id}/users")
 def get_device_users(device_id: str):
     devices = load_devices()
-    print(f"Loaded devices: {devices}")
-    if device_id not in devices:
+    device_info = next((d for d in devices if d.get("id") == device_id), None)
+    
+    if not device_info:
         raise HTTPException(status_code=404, detail="Device not found")
     
-    device_info = devices[device_id]
     zk = ZKTecoAttendance(ip_address=device_info["ip"], port=device_info.get("port", 4370))
     
     try:
@@ -49,10 +49,11 @@ def get_device_attendance(
     end_date: Optional[date] = Query(None, description="End date in YYYY-MM-DD format")
 ):
     devices = load_devices()
-    if device_id not in devices:
+    device_info = next((d for d in devices if d.get("id") == device_id), None)
+    
+    if not device_info:
         raise HTTPException(status_code=404, detail="Device not found")
     
-    device_info = devices[device_id]
     zk = ZKTecoAttendance(ip_address=device_info["ip"], port=device_info.get("port", 4370))
     
     try:
