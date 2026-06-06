@@ -1,4 +1,5 @@
 client: WoodPro
+x_auth_header: lakudi-bros-ge-punch-logs
 devices:
   - id: machine_1
     name: Machine 1
