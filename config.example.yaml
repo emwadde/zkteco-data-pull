@@ -1,0 +1,11 @@
+client: Client Name
+x_auth_header: example_auth_token
+devices:
+  - id: machine_1
+    name: Machine 1
+    ip: 192.168.50.49
+    port: 4370
+  - id: machine_2
+    name: Machine 404
+    ip: 192.168.40.4
+    port: 4370
