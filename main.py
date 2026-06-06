@@ -27,6 +27,7 @@ def get_devices():
 @app.get("/devices/{device_id}/users")
 def get_device_users(device_id: str):
     devices = load_devices()
+    print(f"Loaded devices: {devices}")
     if device_id not in devices:
         raise HTTPException(status_code=404, detail="Device not found")
     
