@@ -1,5 +1,5 @@
-from fastapi import FastAPI, HTTPException, Query, Request, Depends
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, HTTPException, Query, Request, Depends, Form, Response
+from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
 from fastapi.security import APIKeyHeader
 import yaml
 import os
@@ -7,10 +7,7 @@ from typing import Optional
 from datetime import date
 from zkteco_utils import ZKTecoAttendance
 
-# Define the security scheme for Swagger UI
-api_key_header = APIKeyHeader(name="x-auth-header", auto_error=False)
-
-# Add it as a global dependency so Swagger UI knows about it
+api_key_header = APIKeyHeader(name="x-auth-token", auto_error=False)
 app = FastAPI(dependencies=[Depends(api_key_header)])
 
 CONFIG_FILE = "config.yaml"
@@ -18,7 +15,6 @@ CONFIG_FILE = "config.yaml"
 def load_config():
     if not os.path.exists(CONFIG_FILE):
         raise HTTPException(status_code=404, detail="Configuration file not found")
-    
     with open(CONFIG_FILE, "r") as file:
         try:
             return yaml.safe_load(file)
@@ -26,23 +22,109 @@ def load_config():
             raise HTTPException(status_code=500, detail="Error parsing YAML file")
 
 def load_devices():
-    config = load_config()
-    return config.get("devices", [])
+    return load_config().get("devices", [])
 
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
-    # Bypass auth for OpenAPI docs
-    if request.url.path in ["/docs", "/openapi.json", "/redoc"]:
+    if request.url.path in ["/docs", "/openapi.json", "/redoc", "/ui/login"]:
         return await call_next(request)
         
     config = load_config()
-    expected_token = config.get("x_auth_header")
+    expected_token = config.get("x_auth_token")
     
-    # Check if the header matches
-    if expected_token and request.headers.get("x-auth-header") != expected_token:
-        return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
-        
+    if expected_token:
+        provided_token = request.headers.get("x-auth-token") or request.cookies.get("x-auth-token")
+        if provided_token != expected_token:
+            # Redirect UI routes to login, return JSON for API routes
+            if request.url.path.startswith("/ui/"):
+                return RedirectResponse(url="/ui/login", status_code=302)
+            return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
+            
     return await call_next(request)
+
+@app.get("/ui/login", response_class=HTMLResponse)
+def login_page():
+    return """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Login</title>
+        <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    </head>
+    <body class="bg-gray-100 flex items-center justify-center h-screen">
+        <form method="post" action="/ui/login" class="bg-white p-8 rounded-lg shadow-md w-96">
+            <h2 class="text-2xl font-bold mb-6 text-gray-800">API Login</h2>
+            <input type="password" name="token" placeholder="Enter x-auth-token" required 
+                   class="w-full px-4 py-2 border rounded-md mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+            <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition">Login</button>
+        </form>
+    </body>
+    </html>
+    """
+
+@app.post("/ui/login")
+def login_submit(response: Response, token: str = Form(...)):
+    config = load_config()
+    expected_token = config.get("x_auth_token")
+    
+    if token == expected_token:
+        res = RedirectResponse(url="/ui/devices", status_code=302)
+        res.set_cookie(key="x-auth-token", value=token, httponly=True, samesite="lax", max_age=86400)
+        return res
+        
+    return HTMLResponse("Invalid token. <a href='/ui/login' class='text-blue-500 underline'>Try again</a>", status_code=401)
+
+@app.get("/ui/devices", response_class=HTMLResponse)
+def devices_page():
+    devices = load_devices()
+    rows = ""
+    for d in devices:
+        rows += f"""
+        <tr class="border-b border-gray-200 hover:bg-gray-50">
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{d.get('id')}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{d.get('name')}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{d.get('ip')}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{d.get('port', 4370)}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                <a href="/docs#/default/get_device_users_devices__device_id__users_get" class="text-blue-600 hover:text-blue-900 mr-3">API: Users</a>
+                <a href="/docs#/default/get_device_attendance_devices__device_id__attendance_get" class="text-blue-600 hover:text-blue-900">API: Logs</a>
+            </td>
+        </tr>
+        """
+        
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Devices</title>
+        <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    </head>
+    <body class="bg-gray-50 p-8">
+        <div class="max-w-5xl mx-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-3xl font-bold text-gray-800">Connected Devices</h1>
+                <a href="/docs" class="bg-gray-800 text-white px-4 py-2 rounded shadow hover:bg-gray-700">Swagger API</a>
+            </div>
+            <div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IP Address</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Port</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {rows}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
 
 @app.get("/devices")
 def get_devices():
@@ -57,7 +139,6 @@ def get_device_users(device_id: str):
         raise HTTPException(status_code=404, detail="Device not found")
     
     zk = ZKTecoAttendance(ip_address=device_info["ip"], port=device_info.get("port", 4370))
-    
     try:
         zk.connect()
         return zk.get_users()
@@ -79,7 +160,6 @@ def get_device_attendance(
         raise HTTPException(status_code=404, detail="Device not found")
     
     zk = ZKTecoAttendance(ip_address=device_info["ip"], port=device_info.get("port", 4370))
-    
     try:
         zk.connect()
         return zk.get_attendance(start_date=start_date, end_date=end_date)
