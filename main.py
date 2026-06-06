@@ -7,8 +7,8 @@ from typing import Optional
 from datetime import date
 from zkteco_utils import ZKTecoAttendance
 
-api_key_header = APIKeyHeader(name="x-auth-token", auto_error=False)
-app = FastAPI(dependencies=[Depends(api_key_header)])
+auth_header = APIKeyHeader(name="x-auth-token", auto_error=False)
+app = FastAPI(dependencies=[Depends(auth_header)])
 
 CONFIG_FILE = "config.yaml"
 
