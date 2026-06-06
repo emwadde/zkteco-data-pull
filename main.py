@@ -5,12 +5,22 @@ import yaml
 import os
 from typing import Optional
 from datetime import date
+from pydantic import BaseModel
 from zkteco_utils import ZKTecoAttendance
 
-auth_header = APIKeyHeader(name="x-auth-token", auto_error=False)
-app = FastAPI(dependencies=[Depends(auth_header)])
+api_key_header = APIKeyHeader(name="x-auth-token", auto_error=False)
+app = FastAPI(dependencies=[Depends(api_key_header)])
 
 CONFIG_FILE = "config.yaml"
+
+class SetUserRequest(BaseModel):
+    uid: int
+    user_id: str = "2"
+    name: str
+    privilege: int = 0
+    password: str = ""
+    group_id: str = ""
+    card: int = 0
 
 def load_config():
     if not os.path.exists(CONFIG_FILE):
@@ -171,7 +181,10 @@ def device_users_page(device_id: str):
             <div class="mb-4">
                 <a href="/ui/devices" class="text-blue-600 hover:underline">&larr; Back to Devices</a>
             </div>
-            <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-6">Users: {device_info.get('name')}</h1>
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">Users: {device_info.get('name')}</h1>
+                <a href="/ui/devices/{device_id}/set-user" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition font-medium">+ Add/Edit User</a>
+            </div>
             <div class="bg-white shadow-md rounded-lg overflow-x-auto border border-gray-200">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
@@ -187,13 +200,17 @@ def device_users_page(device_id: str):
                     </tbody>
                 </table>
             </div>
-        </div>
+                } finally {{
+                    document.getElementById('loading').classList.add('hidden');
+                }}
+            }});
+        </script>
     </body>
     </html>
     """
 
-@app.get("/ui/devices/{device_id}/logs", response_class=HTMLResponse, include_in_schema=False)
-def device_logs_page(device_id: str):
+@app.get("/ui/devices/{device_id}/set-user", response_class=HTMLResponse, include_in_schema=False)
+def set_device_user_page(device_id: str):
     devices = load_devices()
     device_info = next((d for d in devices if d.get("id") == device_id), None)
     
@@ -206,100 +223,96 @@ def device_logs_page(device_id: str):
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Logs - {device_info.get('name')}</title>
+        <title>Set User - {device_info.get('name')}</title>
         <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     </head>
     <body class="bg-gray-50 p-4 sm:p-8">
-        <div class="max-w-6xl mx-auto">
+        <div class="max-w-2xl mx-auto">
             <div class="mb-4">
-                <a href="/ui/devices" class="text-blue-600 hover:underline">&larr; Back to Devices</a>
+                <a href="/ui/devices/{device_id}/users" class="text-blue-600 hover:underline">&larr; Back to Users</a>
             </div>
-            <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-6">Logs: {device_info.get('name')}</h1>
-            
-            <div class="bg-white p-4 rounded-lg shadow-md border border-gray-200 mb-6 flex flex-col sm:flex-row gap-4 sm:items-end">
-                <div class="w-full sm:w-auto">
-                    <label class="block text-sm font-medium text-gray-700">From Date</label>
-                    <input type="date" id="from_date" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                <div class="w-full sm:w-auto">
-                    <label class="block text-sm font-medium text-gray-700">To Date</label>
-                    <input type="date" id="to_date" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                <button id="fetch_btn" class="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition">Fetch Logs</button>
-            </div>
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-6">Set User: {device_info.get('name')}</h1>
 
-            <div id="loading" class="hidden text-blue-600 mb-4 font-medium">Fetching data from device...</div>
-            <div id="error" class="hidden text-red-600 mb-4 font-medium"></div>
+            <div id="alert" class="hidden p-4 mb-4 rounded-md"></div>
 
-            <div class="bg-white shadow-md rounded-lg overflow-x-auto border border-gray-200 hidden" id="table_container">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User ID</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check In</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check Out</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hours</th>
-                        </tr>
-                    </thead>
-                    <tbody id="logs_body" class="bg-white divide-y divide-gray-200">
-                    </tbody>
-                </table>
-            </div>
+            <form id="setUserForm" class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">UID (Internal ID)</label>
+                        <input type="number" name="uid" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">User ID (Display)</label>
+                        <input type="text" name="user_id" value="2" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Name</label>
+                        <input type="text" name="name" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Password</label>
+                        <input type="text" name="password" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Privilege</label>
+                        <select name="privilege" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-white">
+                            <option value="0">User</option>
+                            <option value="14">Admin</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Card Number</label>
+                        <input type="number" name="card" value="0" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Group ID</label>
+                        <input type="text" name="group_id" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition font-medium">Save User</button>
+            </form>
         </div>
-
         <script>
-            document.getElementById('fetch_btn').addEventListener('click', async () => {{
-                const fromDate = document.getElementById('from_date').value;
-                const toDate = document.getElementById('to_date').value;
+            document.getElementById('setUserForm').addEventListener('submit', async (e) => {{
+                e.preventDefault();
+                const btn = e.target.querySelector('button');
+                btn.disabled = true;
+                btn.innerText = 'Saving...';
                 
-                let url = `/devices/{device_id}/attendance?`;
-                if (fromDate) url += `start_date=${{fromDate}}&`;
-                if (toDate) url += `end_date=${{toDate}}`;
+                const formData = new FormData(e.target);
+                const data = Object.fromEntries(formData.entries());
+                
+                // Typecasting to match Pydantic model
+                data.uid = parseInt(data.uid) || 0;
+                data.privilege = parseInt(data.privilege) || 0;
+                data.card = parseInt(data.card) || 0;
+                if(!data.user_id) data.user_id = '2';
 
-                document.getElementById('loading').classList.remove('hidden');
-                document.getElementById('error').classList.add('hidden');
-                document.getElementById('table_container').classList.add('hidden');
-                const tbody = document.getElementById('logs_body');
-                tbody.innerHTML = '';
+                const alertBox = document.getElementById('alert');
+                alertBox.className = 'hidden p-4 mb-4 rounded-md';
 
                 try {{
-                    const response = await fetch(url);
+                    const response = await fetch(`/devices/{device_id}/set-user`, {{
+                        method: 'POST',
+                        headers: {{
+                            'Content-Type': 'application/json'
+                        }},
+                        body: JSON.stringify(data)
+                    }});
+
                     if (!response.ok) {{
                         const err = await response.json();
-                        throw new Error(err.detail || `HTTP error! status: ${{response.status}}`);
+                        throw new Error(err.detail || 'Failed to save user');
                     }}
-                    
-                    const data = await response.json();
-                    
-                    if (data.length === 0) {{
-                        document.getElementById('error').innerText = 'No records found for the selected date range.';
-                        document.getElementById('error').classList.remove('hidden');
-                    }} else {{
-                        data.forEach(row => {{
-                            const checkInStr = row.check_in ? new Date(row.check_in).toLocaleTimeString([], {{hour: '2-digit', minute:'2-digit'}}) : '-';
-                            const checkOutStr = row.check_out ? new Date(row.check_out).toLocaleTimeString([], {{hour: '2-digit', minute:'2-digit'}}) : '-';
-                            
-                            const tr = document.createElement('tr');
-                            tr.className = 'hover:bg-gray-50';
-                            tr.innerHTML = `
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">${{row.user_id}}</td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${{row.user_name}}</td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${{row.date || '-'}}</td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-green-600 font-medium">${{checkInStr}}</td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-red-600 font-medium">${{checkOutStr}}</td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">${{row.duration_hours || '-'}}</td>
-                            `;
-                            tbody.appendChild(tr);
-                        }});
-                        document.getElementById('table_container').classList.remove('hidden');
-                    }}
-                }} catch (e) {{
-                    document.getElementById('error').innerText = 'Error: ' + e.message;
-                    document.getElementById('error').classList.remove('hidden');
+
+                    alertBox.className = 'p-4 mb-4 rounded-md bg-green-100 text-green-700';
+                    alertBox.innerText = 'User saved successfully!';
+                }} catch (error) {{
+                    alertBox.className = 'p-4 mb-4 rounded-md bg-red-100 text-red-700';
+                    alertBox.innerText = error.message;
                 }} finally {{
-                    document.getElementById('loading').classList.add('hidden');
+                    btn.disabled = false;
+                    btn.innerText = 'Save User';
                 }}
             }});
         </script>
@@ -344,6 +357,35 @@ def get_device_attendance(
     try:
         zk.connect()
         return zk.get_attendance(start_date=start_date, end_date=end_date)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        zk.disconnect()
+
+@app.post("/devices/{device_id}/set-user")
+def set_device_user(device_id: str, user: SetUserRequest):
+    devices = load_devices()
+    device_info = next((d for d in devices if d.get("id") == device_id), None)
+    
+    if not device_info:
+        raise HTTPException(status_code=404, detail="Device not found")
+    
+    zk = ZKTecoAttendance(ip_address=device_info["ip"], port=device_info.get("port", 4370))
+    try:
+        zk.connect()
+        success = zk.set_user(
+            uid=user.uid,
+            name=user.name,
+            privilege=user.privilege,
+            password=user.password,
+            group_id=user.group_id,
+            user_id=user.user_id,
+            card=user.card
+        )
+        if success:
+            return {"status": "success", "message": f"User {user.uid} saved successfully"}
+        else:
+            raise HTTPException(status_code=500, detail="Failed to save user via ZKTeco connection")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:

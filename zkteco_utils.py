@@ -1,4 +1,4 @@
-from zk import ZK
+from zk import ZK, const
 import pandas as pd
 from datetime import datetime, time
 
@@ -47,6 +47,27 @@ class ZKTecoAttendance:
             }
             for user in users
         ]
+    
+    def set_user(self, uid=None, name='', privilege=0, password='', group_id='', user_id='', card=0):
+        """
+        create or update user by uid
+
+        :param name: name ot the user
+        :param privilege: check the const.py for reference
+        :param password: int password
+        :param group_id: group ID
+        :param user_id: your own user ID
+        :param card: card
+        :return: bool
+        """
+        if not self.conn:
+            raise ConnectionError("Not connected to device.")
+        try:
+            self.conn.set_user(uid=uid, name=name, privilege=0, password=password, group_id=group_id, card=card)
+            return True
+        except Exception as e:
+            print ("Process terminate : {}".format(e))
+            return False
 
     def get_attendance_status(self, punch):
         punch_map = {0: "Check In", 1: "Check Out"}
