@@ -45,14 +45,16 @@ async def auth_middleware(request: Request, call_next):
 def login_page():
     return """
     <!DOCTYPE html>
-    <html>
+    <html lang="en">
     <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Login</title>
         <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     </head>
-    <body class="bg-gray-100 flex items-center justify-center h-screen">
-        <form method="post" action="/ui/login" class="bg-white p-8 rounded-lg shadow-md w-96">
-            <h2 class="text-2xl font-bold mb-6 text-gray-800">API Login</h2>
+    <body class="bg-gray-100 flex items-center justify-center h-screen px-4">
+        <form method="post" action="/ui/login" class="bg-white p-6 sm:p-8 rounded-lg shadow-md w-full max-w-sm border border-gray-200">
+            <h2 class="text-2xl font-bold mb-6 text-gray-800 text-center">API Login</h2>
             <input type="password" name="token" placeholder="Enter x-auth-token" required 
                    class="w-full px-4 py-2 border rounded-md mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
             <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition">Login</button>
@@ -80,11 +82,11 @@ def devices_page():
     for d in devices:
         rows += f"""
         <tr class="border-b border-gray-200 hover:bg-gray-50">
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{d.get('id')}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{d.get('name')}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{d.get('ip')}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{d.get('port', 4370)}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{d.get('id')}</td>
+            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{d.get('name')}</td>
+            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{d.get('ip')}</td>
+            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{d.get('port', 4370)}</td>
+            <td class="px-4 py-3 whitespace-nowrap text-sm font-medium">
                 <a href="/ui/devices/{d.get('id')}/users" class="text-blue-600 hover:text-blue-900 mr-3">Users</a>
                 <a href="/ui/devices/{d.get('id')}/logs" class="text-blue-600 hover:text-blue-900">Logs</a>
             </td>
@@ -93,26 +95,28 @@ def devices_page():
         
     return f"""
     <!DOCTYPE html>
-    <html>
+    <html lang="en">
     <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Devices</title>
         <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     </head>
-    <body class="bg-gray-50 p-8">
+    <body class="bg-gray-50 p-4 sm:p-8">
         <div class="max-w-5xl mx-auto">
-            <div class="flex justify-between items-center mb-6">
-                <h1 class="text-3xl font-bold text-gray-800">Connected Devices</h1>
-                <a href="/docs" class="bg-gray-800 text-white px-4 py-2 rounded shadow hover:bg-gray-700">Swagger API</a>
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">Connected Devices</h1>
+                <a href="/docs" class="bg-gray-800 text-white px-4 py-2 rounded shadow hover:bg-gray-700 text-sm sm:text-base whitespace-nowrap">Swagger API</a>
             </div>
-            <div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
+            <div class="bg-white shadow-md rounded-lg overflow-x-auto border border-gray-200">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IP Address</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Port</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IP Address</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Port</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
@@ -146,34 +150,36 @@ def device_users_page(device_id: str):
     for u in users:
         rows += f"""
         <tr class="border-b border-gray-200 hover:bg-gray-50">
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{u.get('uid')}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{u.get('user_id')}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{u.get('name') or 'N/A'}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{u.get('privilege')}</td>
+            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{u.get('uid')}</td>
+            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{u.get('user_id')}</td>
+            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 font-medium">{u.get('name') or 'N/A'}</td>
+            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{u.get('privilege')}</td>
         </tr>
         """
 
     return f"""
     <!DOCTYPE html>
-    <html>
+    <html lang="en">
     <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Users - {device_info.get('name')}</title>
         <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     </head>
-    <body class="bg-gray-50 p-8">
+    <body class="bg-gray-50 p-4 sm:p-8">
         <div class="max-w-5xl mx-auto">
             <div class="mb-4">
                 <a href="/ui/devices" class="text-blue-600 hover:underline">&larr; Back to Devices</a>
             </div>
-            <h1 class="text-3xl font-bold text-gray-800 mb-6">Users on {device_info.get('name')}</h1>
-            <div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-6">Users: {device_info.get('name')}</h1>
+            <div class="bg-white shadow-md rounded-lg overflow-x-auto border border-gray-200">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UID</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User ID</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Privilege</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UID</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User ID</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Privilege</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
@@ -196,43 +202,45 @@ def device_logs_page(device_id: str):
 
     return f"""
     <!DOCTYPE html>
-    <html>
+    <html lang="en">
     <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Logs - {device_info.get('name')}</title>
         <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     </head>
-    <body class="bg-gray-50 p-8">
+    <body class="bg-gray-50 p-4 sm:p-8">
         <div class="max-w-6xl mx-auto">
             <div class="mb-4">
                 <a href="/ui/devices" class="text-blue-600 hover:underline">&larr; Back to Devices</a>
             </div>
-            <h1 class="text-3xl font-bold text-gray-800 mb-6">Attendance Logs: {device_info.get('name')}</h1>
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-6">Logs: {device_info.get('name')}</h1>
             
-            <div class="bg-white p-4 rounded-lg shadow-md border border-gray-200 mb-6 flex flex-wrap gap-4 items-end">
-                <div>
+            <div class="bg-white p-4 rounded-lg shadow-md border border-gray-200 mb-6 flex flex-col sm:flex-row gap-4 sm:items-end">
+                <div class="w-full sm:w-auto">
                     <label class="block text-sm font-medium text-gray-700">From Date</label>
                     <input type="date" id="from_date" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500">
                 </div>
-                <div>
+                <div class="w-full sm:w-auto">
                     <label class="block text-sm font-medium text-gray-700">To Date</label>
                     <input type="date" id="to_date" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500">
                 </div>
-                <button id="fetch_btn" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition">Fetch Logs</button>
+                <button id="fetch_btn" class="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition">Fetch Logs</button>
             </div>
 
             <div id="loading" class="hidden text-blue-600 mb-4 font-medium">Fetching data from device...</div>
             <div id="error" class="hidden text-red-600 mb-4 font-medium"></div>
 
-            <div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200 hidden" id="table_container">
+            <div class="bg-white shadow-md rounded-lg overflow-x-auto border border-gray-200 hidden" id="table_container">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User ID</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check In</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check Out</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hours</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User ID</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check In</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check Out</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hours</th>
                         </tr>
                     </thead>
                     <tbody id="logs_body" class="bg-white divide-y divide-gray-200">
@@ -276,12 +284,12 @@ def device_logs_page(device_id: str):
                             const tr = document.createElement('tr');
                             tr.className = 'hover:bg-gray-50';
                             tr.innerHTML = `
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${{row.user_id}}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${{row.user_name}}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${{row.date || '-'}}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-medium">${{checkInStr}}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-medium">${{checkOutStr}}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${{row.duration_hours || '-'}}</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">${{row.user_id}}</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${{row.user_name}}</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${{row.date || '-'}}</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-green-600 font-medium">${{checkInStr}}</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-red-600 font-medium">${{checkOutStr}}</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">${{row.duration_hours || '-'}}</td>
                             `;
                             tbody.appendChild(tr);
                         }});
