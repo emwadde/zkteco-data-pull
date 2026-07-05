@@ -1,3 +1,4 @@
+import uvicorn
 from fastapi import FastAPI, HTTPException, Query, Request, Depends, Form, Response
 from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
 from fastapi.security import APIKeyHeader
@@ -386,3 +387,7 @@ def set_device_user(device_id: str, user: SetUserRequest):
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         zk.disconnect()
+
+if __name__ == "__main__":
+    # Start the server using the import string
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
